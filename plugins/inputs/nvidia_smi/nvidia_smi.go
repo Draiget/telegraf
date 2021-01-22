@@ -132,6 +132,12 @@ func (s *SMI) genTagsFields() []metric {
 		setIfUsed("int", fields, "clocks_current_sm", gpu.Clocks.SM)
 		setIfUsed("int", fields, "clocks_current_memory", gpu.Clocks.Memory)
 		setIfUsed("int", fields, "clocks_current_video", gpu.Clocks.Video)
+		setIfUsed("state", fields, "throttle_idle", gpu.ThrottleReasons.Idle)
+		setIfUsed("state", fields, "throttle_sw_power_cap", gpu.ThrottleReasons.SwPowerCap)
+		setIfUsed("state", fields, "throttle_hw_slowdown", gpu.ThrottleReasons.HwSlowdown)
+		setIfUsed("state", fields, "throttle_hw_thermal_slowdown", gpu.ThrottleReasons.HwThermalSlowdown)
+		setIfUsed("state", fields, "throttle_sw_thermal_slowdown", gpu.ThrottleReasons.SwThermalSlowdown)
+		setIfUsed("state", fields, "throttle_hw_power_brake_slowdown", gpu.ThrottleReasons.HwPowerBrakeSlowdown)
 
 		setIfUsed("float", fields, "power_draw", gpu.Power.PowerDraw)
 		metrics = append(metrics, metric{tags, fields})
@@ -175,6 +181,12 @@ func setIfUsed(t string, m map[string]interface{}, k, v string) {
 		if val != "" {
 			m[k] = val
 		}
+	case "state":
+		if val == "Not Active" {
+			m[k] = 0
+		} else if val == "Active" {
+			m[k] = 1
+		}
 	}
 }
 
@@ -187,19 +199,20 @@ type SMI struct {
 
 // GPU defines the structure of the GPU portion of the smi output.
 type GPU []struct {
-	FanSpeed    string           `xml:"fan_speed"` // int
-	Memory      MemoryStats      `xml:"fb_memory_usage"`
-	PState      string           `xml:"performance_state"`
-	Temp        TempStats        `xml:"temperature"`
-	ProdName    string           `xml:"product_name"`
-	UUID        string           `xml:"uuid"`
-	ComputeMode string           `xml:"compute_mode"`
-	Utilization UtilizationStats `xml:"utilization"`
-	Power       PowerReadings    `xml:"power_readings"`
-	PCI         PCI              `xml:"pci"`
-	Encoder     EncoderStats     `xml:"encoder_stats"`
-	FBC         FBCStats         `xml:"fbc_stats"`
-	Clocks      ClockStats       `xml:"clocks"`
+	FanSpeed        string                `xml:"fan_speed"` // int
+	Memory          MemoryStats           `xml:"fb_memory_usage"`
+	PState          string                `xml:"performance_state"`
+	Temp            TempStats             `xml:"temperature"`
+	ProdName        string                `xml:"product_name"`
+	UUID            string                `xml:"uuid"`
+	ComputeMode     string                `xml:"compute_mode"`
+	Utilization     UtilizationStats      `xml:"utilization"`
+	Power           PowerReadings         `xml:"power_readings"`
+	PCI             PCI                   `xml:"pci"`
+	Encoder         EncoderStats          `xml:"encoder_stats"`
+	FBC             FBCStats              `xml:"fbc_stats"`
+	Clocks          ClockStats            `xml:"clocks"`
+	ThrottleReasons ClocksThrottleReasons `xml:"clocks_throttle_reasons"`
 }
 
 // MemoryStats defines the structure of the memory portions in the smi output.
@@ -259,4 +272,17 @@ type ClockStats struct {
 	SM       string `xml:"sm_clock"`       // int
 	Memory   string `xml:"mem_clock"`      // int
 	Video    string `xml:"video_clock"`    // int
+}
+
+// ClocksThrottleReasons defines the structure of the clock throttle reasons portion of the smi output.
+type ClocksThrottleReasons struct {
+	Idle                      string `xml:"clocks_throttle_reason_gpu_idle"`                    // int
+	ApplicationsClocksSetting string `xml:"clocks_throttle_reason_applications_clocks_setting"` // int
+	SwPowerCap                string `xml:"clocks_throttle_reason_sw_power_cap"`                // int
+	HwSlowdown                string `xml:"clocks_throttle_reason_hw_slowdown"`                 // int
+	HwThermalSlowdown         string `xml:"clocks_throttle_reason_hw_thermal_slowdown"`         // int
+	HwPowerBrakeSlowdown      string `xml:"clocks_throttle_reason_hw_power_brake_slowdown"`     // int
+	SyncBoost                 string `xml:"clocks_throttle_reason_sync_boost"`                  // int
+	SwThermalSlowdown         string `xml:"clocks_throttle_reason_sw_thermal_slowdown"`         // int
+	DisplayClocksSettings     string `xml:"clocks_throttle_reason_display_clocks_setting"`      // int
 }
